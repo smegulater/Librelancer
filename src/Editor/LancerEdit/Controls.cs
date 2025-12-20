@@ -56,7 +56,7 @@ public static class Controls
                 data->EventChar = (ushort)(filter((char)data->EventChar) ?? 0);
                 return 0;
             });
-            retval= ImGui.InputText(label, ref value, 250,
+            retval = ImGui.InputText(label, ref value, 250,
                 ImGuiInputTextFlags.CallbackCharFilter | ImGuiInputTextFlags.EnterReturnsTrue, cb);
             GC.KeepAlive(cb);
         }
@@ -80,12 +80,13 @@ public static class Controls
     public static void InputTextIdUndo(string label,
         EditorUndoBuffer buffer,
         EditorPropertyModification<string>.Accessor value,
-        float width = 0.0f)
+        float width = 0.0f,
+        float labelWidth = 0.0f)
     {
         ImGui.PushID(label);
         ImGui.AlignTextToFramePadding();
         Label(label);
-        ImGui.SameLine();
+        ImGui.SameLine(labelWidth);
         if (width != 0.0f)
         {
             ImGui.SetNextItemWidth(width);
@@ -107,15 +108,18 @@ public static class Controls
         int step = 1,
         int step_fast = 100,
         ImGuiInputTextFlags flags = ImGuiInputTextFlags.None,
-        Point? clamp = null
+        Point? clamp = null,
+        float labelWidth = 0.0f,
+        float inputWidth = -1f
     )
     {
         ImGui.PushID(label);
         ImGui.AlignTextToFramePadding();
-        Label(label);
-        ImGui.SameLine();
+        Label(label, width: labelWidth);
+        ImGui.SameLine(labelWidth);
         ref int v = ref value();
         int oldCopy = v;
+        ImGui.PushItemWidth(inputWidth);
         ImGui.InputInt("##input", ref v, step, step_fast, flags);
         if (clamp != null)
         {
@@ -129,6 +133,7 @@ public static class Controls
         {
             buffer.Set(label, value, oldInt, v);
         }
+        ImGui.PopItemWidth();
         ImGui.PopID();
     }
 
@@ -533,9 +538,11 @@ public static class Controls
         }
     }
 
-    private static void IdsInput(string label, string infocard, int ids, bool showTooltipOnHover)
+    private static void IdsInput(string label, string infocard, int ids, bool showTooltipOnHover, float labelWidth = 0f)
     {
-        ImGui.InputInt(label, ref ids, 0, 0, ImGuiInputTextFlags.ReadOnly);
+        ImGui.AlignTextToFramePadding();
+        ImGui.Text(label); ImGui.SameLine(labelWidth);
+        ImGui.InputInt($"##{label}", ref ids, 0, 0, ImGuiInputTextFlags.ReadOnly);
         if (infocard is null)
         {
             ImGui.SameLine();
@@ -559,16 +566,16 @@ public static class Controls
 
     public static void IdsInputStringUndo(string label, GameDataContext gameData, PopupManager popup,
         EditorUndoBuffer undoBuffer, EditorPropertyModification<int>.Accessor accessor,
-        bool showTooltipOnHover = true, float inputWidth = 100f)
+        bool showTooltipOnHover = true, float inputWidth = 0f, float labelWidth = 0f, float buttonWidth = 0f)
     {
         int ids = accessor();
         var infocard = gameData.Infocards.GetStringResource(ids);
         ImGui.PushItemWidth(inputWidth);
-        IdsInput(label, infocard, ids, showTooltipOnHover);
+        IdsInput(label, infocard, ids, showTooltipOnHover, labelWidth);
         ImGui.PopItemWidth();
         ImGui.PushID(label);
         ImGui.SameLine();
-        if (ImGui.Button("Browse Ids"))
+        if (ImGui.Button("Browse Ids", new Vector2(buttonWidth,0f)))
         {
             popup.OpenPopup(new StringSelection(accessor(), gameData.Infocards,
                 n => undoBuffer.Set(label, accessor, n)));
@@ -595,12 +602,14 @@ public static class Controls
         ImGui.EndTooltip();
     }
 
-    static void Label(string id)
+    static void Label(string id, float width = -1)
     {
         var i = id.IndexOf("##", StringComparison.Ordinal);
-        if(i == -1)
+        if (i == -1)
         {
+            ImGui.PushItemWidth(width);
             ImGui.Text(id);
+            ImGui.PopItemWidth();
         }
         else
         {
