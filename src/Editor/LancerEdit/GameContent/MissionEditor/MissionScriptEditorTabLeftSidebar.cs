@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Reflection.Metadata.Ecma335;
 using ImGuiNET;
 using LancerEdit.GameContent.MissionEditor.NodeTypes;
 using LibreLancer.Data.Missions;
@@ -24,10 +25,13 @@ public sealed partial class MissionScriptEditorTab
             nodes.OfType<NodeMissionTrigger>().OrderBy(x => x.InternalId).ToArray());
     }
 
+    float LABEL_WIDTH_SMALL = 100f;
+
+
     private void RenderLeftSidebar()
     {
         var padding = ImGui.GetStyle().FramePadding.Y + ImGui.GetStyle().FrameBorderSize;
-        ImGui.BeginChild("NavbarLeft", new Vector2(300f * ImGuiHelper.Scale, ImGui.GetContentRegionAvail().Y - padding * 2), ImGuiChildFlags.None,
+        ImGui.BeginChild("NavbarLeft", new Vector2(325f * ImGuiHelper.Scale, ImGui.GetContentRegionAvail().Y - padding * 2), ImGuiChildFlags.None,
             ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoMove |
             ImGuiWindowFlags.NoCollapse);
 
@@ -35,12 +39,14 @@ public sealed partial class MissionScriptEditorTab
         {
             renderHistory = !renderHistory;
         }
-
+        ImGui.Separator();
+        ImGui.Spacing();
         ImGui.AlignTextToFramePadding();
-        ImGui.Text("Navigate To: ");
-        ImGui.SameLine();
+        ImGui.Text("Navigate To"); ImGui.SameLine(LABEL_WIDTH_SMALL*ImGuiHelper.Scale);
         jumpLookup?.Draw();
-        Controls.InputTextIdUndo("Node Filter", undoBuffer, () => ref NodeFilter);
+        Controls.InputTextIdUndo("Node Filter", undoBuffer, () => ref NodeFilter, labelWidth: LABEL_WIDTH_SMALL);
+        ImGui.SameLine(LABEL_WIDTH_SMALL*ImGuiHelper.Scale);ImGui.NewLine();
+        ImGui.Spacing();
 
         ImGui.PushStyleColor(ImGuiCol.Header, ImGui.GetColorU32(ImGuiCol.FrameBg));
         if (ImGui.CollapsingHeader("Mission Information", ImGuiTreeNodeFlags.DefaultOpen))
@@ -297,7 +303,7 @@ public sealed partial class MissionScriptEditorTab
             selectedArchIndex = missionIni.ShipIni.ShipArches.Count;
             undoBuffer.Commit(new ListAdd<NPCShipArch>("Ship Arch", missionIni.ShipIni.ShipArches, new()));
         }
-
+        ImGui.SameLine();
         ImGui.BeginDisabled(selectedArchIndex == -1);
         if (ImGui.Button("Delete Ship Arch"))
         {
@@ -395,16 +401,18 @@ public sealed partial class MissionScriptEditorTab
     private void RenderMissionInformation()
     {
         var info = missionIni.Info;
-        Controls.IdsInputStringUndo("Title IDS", gameData, popup, undoBuffer, () => ref info.MissionTitle);
-        Controls.IdsInputStringUndo("Offer IDS", gameData, popup, undoBuffer, () => ref info.MissionOffer);
+        ImGui.Spacing();
+        Controls.IdsInputStringUndo("Title ID", gameData, popup, undoBuffer, () => ref info.MissionTitle,labelWidth:LABEL_WIDTH_SMALL, inputWidth: LABEL_WIDTH_SMALL, buttonWidth: -1f);
+        Controls.IdsInputStringUndo("Offer ID", gameData, popup, undoBuffer, () => ref info.MissionOffer, labelWidth: LABEL_WIDTH_SMALL, inputWidth: LABEL_WIDTH_SMALL, buttonWidth: -1f);
 
-        ImGui.PushItemWidth(150f);
-
-        Controls.InputIntUndo("Reward", undoBuffer, () => ref info.Reward);
-        ImGui.InputText("NPC Ship File", ref info.NpcShipFile, 255, ImGuiInputTextFlags.ReadOnly);
-
+        Controls.InputIntUndo("Reward", undoBuffer, () => ref info.Reward, labelWidth: LABEL_WIDTH_SMALL);
+        ImGui.Spacing();
+        ImGui.Text("NPC Ship File"); ImGui.SameLine(LABEL_WIDTH_SMALL * ImGuiHelper.Scale);
+        ImGui.PushItemWidth(-1);
+        ImGui.InputText("##NPCShipFile", ref info.NpcShipFile, 255, ImGuiInputTextFlags.ReadOnly | ImGuiInputTextFlags.ElideLeft);
         ImGui.PopItemWidth();
-
+        ImGui.Dummy(new Vector2(LABEL_WIDTH_SMALL * ImGuiHelper.Scale,0));
+        ImGui.SameLine(LABEL_WIDTH_SMALL * ImGuiHelper.Scale);
         if (ImGui.Button("Change Ship File"))
         {
             popup.OpenPopup(new VfsFileSelector("Change Ship File",

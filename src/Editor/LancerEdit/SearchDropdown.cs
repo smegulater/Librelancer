@@ -70,10 +70,10 @@ public class SearchDropdown<T>
         }
 
         var w = ImGui.CalcItemWidth();
-        ImGui.SetNextItemWidth(w - szButton);
-
+        ImGui.PushItemWidth(w - szButton);
         var enterPressed = ImGui.InputText("##input", ref inputText, 300,
             ImGuiInputTextFlags.EnterReturnsTrue | ImGuiInputTextFlags.CallbackAlways | ImGuiInputTextFlags.CallbackHistory, TextCallback);
+        ImGui.PopItemWidth();
         var textActive = ImGui.IsItemActive();
         var textActivated = ImGui.IsItemActivated();
         if (textActivated)
