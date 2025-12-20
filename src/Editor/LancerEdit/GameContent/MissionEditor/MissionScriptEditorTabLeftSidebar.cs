@@ -298,32 +298,15 @@ public sealed partial class MissionScriptEditorTab
             ImGui.BulletText("NPCShipIni not defined");
             return;
         }
-        if (ImGui.Button("Create New Ship Arch"))
-        {
-            selectedArchIndex = missionIni.ShipIni.ShipArches.Count;
-            undoBuffer.Commit(new ListAdd<NPCShipArch>("Ship Arch", missionIni.ShipIni.ShipArches, new()));
-        }
-        ImGui.SameLine();
-        ImGui.BeginDisabled(selectedArchIndex == -1);
-        if (ImGui.Button("Delete Ship Arch"))
-        {
-            win.Confirm("Are you sure you want to delete this ship arch?",
-                () =>
-                {
-                    undoBuffer.Commit(new ListRemove<NPCShipArch>("Ship Arch",
-                        missionIni.ShipIni.ShipArches, selectedArchIndex,
-                        missionIni.ShipIni.ShipArches[selectedArchIndex]));
-                    selectedArchIndex--;
-                });
-        }
-        ImGui.EndDisabled();
-
         if (selectedArchIndex >= missionIni.ShipIni.ShipArches.Count)
             selectedArchIndex = -1;
 
         var selectedArch = selectedArchIndex != -1 ? missionIni.ShipIni.ShipArches[selectedArchIndex] : null;
-        ImGui.SetNextItemWidth(150f);
-        if (ImGui.BeginCombo("Ship Archs", selectedArch is not null ? selectedArch.Nickname : ""))
+        ImGui.Spacing();
+        ImGui.AlignTextToFramePadding();
+        ImGui.Text("Select NPC Arch"); ImGui.SameLine(LABEL_WIDTH_SMALL * ImGuiHelper.Scale);
+        ImGui.PushItemWidth(150f);
+        if (ImGui.BeginCombo("##ShipArchs", selectedArch is not null ? selectedArch.Nickname : ""))
         {
             for (var index = 0; index < missionIni.ShipIni.ShipArches.Count; index++)
             {
@@ -340,6 +323,34 @@ public sealed partial class MissionScriptEditorTab
 
             ImGui.EndCombo();
         }
+        ImGui.PopItemWidth();
+        ImGui.SameLine();
+
+        if (ImGui.Button(Icons.PlusCircle.ToString()))
+        {
+            selectedArchIndex = missionIni.ShipIni.ShipArches.Count;
+            undoBuffer.Commit(new ListAdd<NPCShipArch>("Ship Arch", missionIni.ShipIni.ShipArches, new()));
+        }
+
+        ImGui.SameLine();
+
+        ImGui.BeginDisabled(selectedArchIndex == -1);
+        if (ImGui.Button(Icons.TrashAlt.ToString()))
+        {
+            win.Confirm("Are you sure you want to delete this ship arch?",
+                () =>
+                {
+                    undoBuffer.Commit(new ListRemove<NPCShipArch>("Ship Arch",
+                        missionIni.ShipIni.ShipArches, selectedArchIndex,
+                        missionIni.ShipIni.ShipArches[selectedArchIndex]));
+                    selectedArchIndex--;
+                });
+        }
+        ImGui.EndDisabled();
+
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
 
         if (selectedArch is null)
         {
@@ -348,33 +359,44 @@ public sealed partial class MissionScriptEditorTab
 
         ImGui.PushID(selectedArchIndex);
 
-        Controls.InputTextIdUndo("Arch Nickname", undoBuffer, () => ref selectedArch.Nickname, 150f);
-        Controls.InputTextIdUndo("Loadout", undoBuffer, () => ref selectedArch.Loadout, 150f);
+        Controls.InputTextIdUndo("Arch Nickname", undoBuffer, () => ref selectedArch.Nickname, -1f, labelWidth:LABEL_WIDTH_SMALL);
+        Controls.InputTextIdUndo("Loadout", undoBuffer, () => ref selectedArch.Loadout, -1f, labelWidth: LABEL_WIDTH_SMALL);
+
         MissionEditorHelpers.AlertIfInvalidRef(() =>
             gameData.GameData.Loadouts.Any(x => x.Nickname == selectedArch.Loadout));
 
-        ImGui.SetNextItemWidth(100f);
-        Controls.InputIntUndo("Level", undoBuffer, () => ref selectedArch.Level, 1, 10);
-        Controls.InputTextIdUndo("Pilot", undoBuffer, () => ref selectedArch.Pilot, 150f);
+        Controls.InputIntUndo("Level", undoBuffer, () => ref selectedArch.Level, 1, 10, inputWidth:-1f, labelWidth: LABEL_WIDTH_SMALL);
+        Controls.InputTextIdUndo("Pilot", undoBuffer, () => ref selectedArch.Pilot, -1f, labelWidth: LABEL_WIDTH_SMALL);
+
         MissionEditorHelpers.AlertIfInvalidRef(() => gameData.GameData.GetPilot(selectedArch.Pilot) is not null);
 
         string[] stateGraphs =
             { "NOTHING", "FIGHTER", "FREIGHTER", "GUNBOAT", "CRUISER", "TRANSPORT", "CAPITAL", "MINING" };
         int currentStateGraphIndex = Array.FindIndex(stateGraphs,
             x => selectedArch.StateGraph?.Equals(x, StringComparison.InvariantCultureIgnoreCase) ?? false);
+
         if (currentStateGraphIndex == -1)
         {
             currentStateGraphIndex = 0;
         }
 
-        ImGui.SetNextItemWidth(150f);
-        ImGui.Combo("State Graph", ref currentStateGraphIndex, stateGraphs, stateGraphs.Length);
+        ImGui.AlignTextToFramePadding();
+        ImGui.Text("State Graph"); ImGui.SameLine(LABEL_WIDTH_SMALL * ImGuiHelper.Scale);
+        ImGui.PushItemWidth(-1);
+        ImGui.Combo("##StateGraph", ref currentStateGraphIndex, stateGraphs, stateGraphs.Length);
         if (selectedArch.StateGraph != stateGraphs[currentStateGraphIndex])
         {
             undoBuffer.Set("State Graph", () => ref selectedArch.StateGraph, stateGraphs[currentStateGraphIndex]);
         }
-        ImGui.NewLine();
-        ImGui.Text("NPC Classes");
+        ImGui.PopItemWidth();
+
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        ImGui.AlignTextToFramePadding();
+        ImGui.Text("NPC Classes"); ImGui.SameLine(LABEL_WIDTH_SMALL * ImGuiHelper.Scale);
+        MissionEditorHelpers.AddRemoveListButtons(selectedArch.NpcClass, undoBuffer);
 
         if (selectedArch.NpcClass.Count is not 0)
         {
@@ -383,6 +405,8 @@ public sealed partial class MissionScriptEditorTab
                 var npcClass = selectedArch.NpcClass[i];
                 int idx = i;
                 ImGui.PushID(idx);
+                ImGui.Dummy(new Vector2(1));
+                ImGui.SameLine(LABEL_WIDTH_SMALL * ImGuiHelper.Scale);
                 ImGuiExt.InputTextLogged("##npc-class", ref npcClass,
                     250, (old, upd) => new ListSet<string>(
                         "Npc Class", selectedArch.NpcClass, idx, old, upd), true);
@@ -391,7 +415,6 @@ public sealed partial class MissionScriptEditorTab
             }
         }
 
-        MissionEditorHelpers.AddRemoveListButtons(selectedArch.NpcClass, undoBuffer);
 
         ImGui.PopID();
     }
