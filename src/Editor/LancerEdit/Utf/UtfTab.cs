@@ -14,6 +14,7 @@ using LancerEdit.Utf.Popups;
 using LibreLancer;
 using LibreLancer.ContentEdit;
 using LibreLancer.ContentEdit.Model;
+using LibreLancer.Data;
 using LibreLancer.Dialogs;
 using LibreLancer.Graphics;
 using LibreLancer.ImageLib;
@@ -463,6 +464,10 @@ namespace LancerEdit
                     if (ImGui.MenuItem("Color Picker"))
                     {
                         popups.OpenPopup(new ColorPickerPopup(selectedNode));
+                    }
+                    if (ImGui.MenuItem("Frame Rect Editor"))
+                    {
+                        popups.OpenPopup(new FrameRectEditorPopup(selectedNode));
                     }
                     ImGui.EndPopup();
                 }
