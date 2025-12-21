@@ -213,38 +213,23 @@ public sealed partial class MissionScriptEditorTab
 
     private void RenderNpcManagement()
     {
-        if (ImGui.Button("Create New NPC"))
-        {
-            selectedNpcIndex = missionIni.NPCs.Count;
-            undoBuffer.Commit(new ListAdd<MissionNPC>("NPC", missionIni.NPCs, new()));
-        }
-
-        ImGui.BeginDisabled(selectedNpcIndex == -1);
-        if (ImGui.Button("Delete NPC"))
-        {
-            win.Confirm("Are you sure you want to delete this NPC?", () =>
-            {
-                undoBuffer.Commit(new ListRemove<MissionNPC>("NPC", missionIni.NPCs,
-                    selectedNpcIndex,
-                    missionIni.NPCs[selectedNpcIndex]));
-                selectedNpcIndex--;
-            });
-        }
-
-        ImGui.EndDisabled();
-
         if (selectedNpcIndex >= missionIni.NPCs.Count)
             selectedNpcIndex = -1;
 
         var selectedNpc = selectedNpcIndex != -1 ? missionIni.NPCs[selectedNpcIndex] : null;
+
+        ImGui.Spacing();
+        ImGui.Spacing();
+        
         ImGui.SetNextItemWidth(150f);
-        if (ImGui.BeginCombo("NPCs", selectedNpc is not null ? selectedNpc.Nickname : ""))
+        ImGui.SameLine(LABEL_WIDTH_SMALL * ImGuiHelper.Scale);
+        if (ImGui.BeginCombo("##NPCs", selectedNpc is not null ? selectedNpc.Nickname : ""))
         {
             for (var index = 0; index < missionIni.NPCs.Count; index++)
             {
                 var arch = missionIni.NPCs[index];
                 var selected = arch == selectedNpc;
-                if (!ImGui.Selectable(arch?.Nickname, selected))
+                if (!ImGui.Selectable(arch?.Nickname ?? "Untitled", selected))
                 {
                     continue;
                 }
@@ -256,15 +241,42 @@ public sealed partial class MissionScriptEditorTab
             ImGui.EndCombo();
         }
 
-        if (selectedNpc is null)
+        ImGui.SameLine();
+
+        if (ImGui.Button(Icons.PlusCircle.ToString()))
         {
-            return;
+            selectedNpcIndex = missionIni.NPCs.Count;
+            undoBuffer.Commit(new ListAdd<MissionNPC>("NPC", missionIni.NPCs, new()));
         }
+        ImGui.SameLine();
+
+        if (ImGuiExt.Button(Icons.TrashAlt.ToString(), selectedNpcIndex > -1))
+        {
+            win.Confirm("Are you sure you want to delete this NPC?", () =>
+            {
+                undoBuffer.Commit(new ListRemove<MissionNPC>("NPC", missionIni.NPCs,
+                    selectedNpcIndex,
+                    missionIni.NPCs[selectedNpcIndex]));
+                selectedNpcIndex--;
+            });
+        }
+
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+        ImGui.Spacing();
+
+        if (selectedNpc is null) return;
 
         ImGui.PushID(selectedNpcIndex);
 
-        Controls.InputTextIdUndo("Nickname", undoBuffer, () => ref selectedNpc.Nickname, 150f);
-        Controls.InputTextIdUndo("Archetype", undoBuffer, () => ref selectedNpc.NpcShipArch, 150f);
+        ImGui.AlignTextToFramePadding();
+        ImGui.Text("Nickname"); ImGui.SameLine(LABEL_WIDTH_SMALL * ImGuiHelper.Scale);
+        Controls.InputTextIdUndo("##Nickname", undoBuffer, () => ref selectedNpc.Nickname, -1f);
+
+        ImGui.AlignTextToFramePadding();
+        ImGui.Text("Archetype"); ImGui.SameLine(LABEL_WIDTH_SMALL * ImGuiHelper.Scale);
+        Controls.InputTextIdUndo("##Archetype", undoBuffer, () => ref selectedNpc.NpcShipArch, -1f);
         if (missionIni.ShipIni != null)
         {
             MissionEditorHelpers.AlertIfInvalidRef(() =>
@@ -273,18 +285,18 @@ public sealed partial class MissionScriptEditorTab
         }
         Controls.IdsInputStringUndo("Name", gameData, popup, undoBuffer,
             () => ref selectedNpc.IndividualName,
-            inputWidth: 150f);
-        Controls.InputTextIdUndo("Affiliation", undoBuffer, () => ref selectedNpc.Affiliation, 150f);
+            labelWidth: LABEL_WIDTH_SMALL, inputWidth: LABEL_WIDTH_SMALL, buttonWidth: -1f);
+        Controls.InputTextIdUndo("Affiliation", undoBuffer, () => ref selectedNpc.Affiliation, 195f, LABEL_WIDTH_SMALL);
         MissionEditorHelpers.AlertIfInvalidRef(() =>
             gameData.GameData.Items.Factions.Any(x => x.Nickname == selectedNpc.Affiliation));
 
-        Controls.InputTextIdUndo("Costume Head", undoBuffer, () => ref selectedNpc.SpaceCostume[0], 150f);
+        Controls.InputTextIdUndo("Costume Head", undoBuffer, () => ref selectedNpc.SpaceCostume[0], 195f, LABEL_WIDTH_SMALL);
         MissionEditorHelpers.AlertIfInvalidRef(() =>
-            gameData.GameData.Items.Ini.Bodyparts.FindBodypart(selectedNpc.SpaceCostume[0]) is not null);
-        Controls.InputTextIdUndo("Costume Body", undoBuffer, () => ref selectedNpc.SpaceCostume[1], 150f);
+            gameData.GameData.Ini.Bodyparts.FindBodypart(selectedNpc.SpaceCostume[0]) is not null);
+        Controls.InputTextIdUndo("Costume Body", undoBuffer, () => ref selectedNpc.SpaceCostume[1], 195f, LABEL_WIDTH_SMALL);
         MissionEditorHelpers.AlertIfInvalidRef(() =>
-            gameData.GameData.Items.Ini.Bodyparts.FindBodypart(selectedNpc.SpaceCostume[1]) is not null);
-        Controls.InputTextIdUndo("Costume Accessory", undoBuffer, () => ref selectedNpc.SpaceCostume[2], 150f);
+            gameData.GameData.Ini.Bodyparts.FindBodypart(selectedNpc.SpaceCostume[1]) is not null);
+        Controls.InputTextIdUndo("Costume Accessory", undoBuffer, () => ref selectedNpc.SpaceCostume[2], 195f, LABEL_WIDTH_SMALL);
         MissionEditorHelpers.AlertIfInvalidRef(() =>
             gameData.GameData.Items.Ini.Bodyparts.FindAccessory(selectedNpc.SpaceCostume[2]) is not null);
 
@@ -312,7 +324,7 @@ public sealed partial class MissionScriptEditorTab
             {
                 var arch = missionIni.ShipIni.ShipArches[index];
                 var selected = arch == selectedArch;
-                if (!ImGui.Selectable(arch?.Nickname, selected))
+                if (!ImGui.Selectable(arch?.Nickname ?? "untitled", selected))
                 {
                     continue;
                 }
